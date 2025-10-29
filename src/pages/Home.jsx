@@ -1,52 +1,61 @@
-// src/pages/Home.jsx
-import { PRODUCTS } from "../data/products";
+﻿import React from "react";
+import { Link } from "react-router-dom";
+import { list } from "../data/catalog";
+import { addToCart } from "../utils/cart";
 
-export default function Home(){
-  const destacados = PRODUCTS.slice(0, 4); // muestra 4 destacados
+function Home() {
+  // Tomamos los primeros 4 como destacados
+  const data = list();
+  const destacados = Array.isArray(data) ? data.slice(0, 4) : [];
 
   return (
-    <main>
-      {/* HERO con texto a la izquierda y mapa a la derecha */}
+    <>
+      {/* HERO (texto + mapa) */}
       <section className="hero container">
         <div className="hero-text">
-          <h1>Productos frescos, saludables y sostenibles 🍎🥬</h1>
+          <h1>Productos frescos, saludables y sostenibles 🌱</h1>
           <p>Compra frutas, verduras y orgánicos de calidad, directo a tu mesa.</p>
-          <a className="btn" href="/productos">Ver catálogo</a>
+          <Link to="/productos" className="btn">Ver catálogo</Link>
+
           <ul className="hero-bullets">
-            <li>🏍️ Entrega en RM</li>
-            <li>📦 Despacho desde $2.000</li>
-            <li>🧑‍🌾 Productores locales</li>
+            <li>🚚 Entrega en RM</li>
+            <li>🛒 Despacho desde $2.000</li>
+            <li>🌿 Productores locales</li>
           </ul>
         </div>
 
         <div className="hero-map">
           <iframe
             title="Mapa HuertoHogar"
-            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d6657130.713296989!2d-74.6!3d-33.4!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9662c59c9a3a93%3A0x7!2sSantiago%2C%20Chile!5e0!3m2!1ses-419!2scl!4v1700000000000"
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d13320.882563756389!2d-70.653!3d-33.45!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9662c59bc0f6d6a1%3A0x4f5fcd2c3d9e7b5f!2sSantiago%20de%20Chile!5e0!3m2!1ses!2scl!4v1699999999999"
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
           />
-          <a className="map-btn" href="/nosotros#sedes">Ver sedes</a>
+          <Link to="/nosotros" className="map-btn">Ver sedes</Link>
         </div>
       </section>
 
       {/* DESTACADOS */}
       <section className="container">
         <h2>Destacados</h2>
+
         <div className="grid">
-          {destacados.map(p => (
-            <article className="card" key={p.codigo}>
-              <img className="card-img" src={`/${p.imagen}`} alt={p.nombre} />
+          {destacados.map((p) => (
+            <article key={p.codigo} className="card">
+              <img
+                className="card-img"
+                src={p.imagen || "/img/productos/placeholder.jpg"}
+                alt={p.nombre}
+              />
               <h3>{p.nombre}</h3>
               <p className="precio">
                 ${Number(p.precio).toLocaleString("es-CL")}
               </p>
               <div className="acciones">
-                <a className="btn" href={`/productos?focus=${encodeURIComponent(p.codigo)}`}>Ver</a>
-                <button
-                  className="btn"
-                  onClick={() => alert(`(demo) Añadido: ${p.nombre}`)}
-                >
+                <Link className="btn" to={`/producto/${encodeURIComponent(p.codigo)}`}>
+                  Ver
+                </Link>
+                <button className="btn" onClick={() => addToCart(p)}>
                   Añadir
                 </button>
               </div>
@@ -54,6 +63,8 @@ export default function Home(){
           ))}
         </div>
       </section>
-    </main>
+    </>
   );
 }
+
+export default Home;

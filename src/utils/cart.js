@@ -1,50 +1,94 @@
-import { PRODUCTS } from "../data/products";
+﻿import { list as catalogList } from "../data/catalog";
 
+// ===== CLAVE EN LOCALSTORAGE =====
 const LS_KEY_CART = "carrito";
 
-// ---- helpers de storage ----
-export function getCarrito(){
+// ----- util local -----
+function emitCartChange() {
+  // evento personalizado para que la UI se entere del cambio
+  window.dispatchEvent(new Event("cart:change"));
+}
+
+// ===== Helpers de almacenamiento =====
+export function getCart() {
   try {
     const raw = localStorage.getItem(LS_KEY_CART);
     const parsed = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? parsed : [];
-  } catch { return []; }
-}
-export function setCarrito(arr){
-  localStorage.setItem(LS_KEY_CART, JSON.stringify(Array.isArray(arr) ? arr : []));
-  // avisa al header y otras vistas
-  window.dispatchEvent(new Event("cart:change"));
-}
-export function getCartCount(){
-  return getCarrito().reduce((s,i)=> s + (i.cantidad||0), 0);
+  } catch {
+    return [];
+  }
 }
 
-// ---- acciones ----
-export function addToCartByCode(codigo){
-  const p = PRODUCTS.find(x => x.codigo === codigo);
-  if(!p) return;
-  const cart = getCarrito();
+export function setCart(arr) {
+  const safe = Array.isArray(arr) ? arr : [];
+  localStorage.setItem(LS_KEY_CART, JSON.stringify(safe));
+  emitCartChange();
+}
+
+// ===== Operaciones de carrito =====
+export function addToCart(product, qty = 1) {
+  if (!product || !product.codigo) return;
+  const cart = getCart();
+  const idx = cart.findIndex((i) => i.codigo === product.codigo);
+  if (idx >= 0) {
+    cart[idx].cantidad = Number(cart[idx].cantidad || 0) + Number(qty || 1);
+  } else {
+    cart.push({
+      codigo: product.codigo,
+      nombre: product.nombre,
+      precio: Number(product.precio) || 0,
+      cantidad: Number(qty) || 1,
+      imagen: product.imagen || "",
+    });
+  }
+  setCart(cart);
+}
+
+export function inc(codigo) {
+  const cart = getCart();
   const i = cart.findIndex(x => x.codigo === codigo);
-  if (i >= 0) cart[i].cantidad += 1;
-  else cart.push({ codigo: p.codigo, nombre: p.nombre, precio: p.precio, cantidad: 1 });
-  setCarrito(cart);
+  if (i >= 0) {
+    cart[i].cantidad = Number(cart[i].cantidad || 0) + 1;
+    setCart(cart);
+  }
 }
 
-export function incAt(index){
-  const c = getCarrito();
-  if (!c[index]) return;
-  c[index].cantidad += 1;
-  setCarrito(c);
+export function dec(codigo) {
+  const cart = getCart();
+  const i = cart.findIndex(x => x.codigo === codigo);
+  if (i >= 0) {
+    cart[i].cantidad = Number(cart[i].cantidad || 0) - 1;
+    if (cart[i].cantidad <= 0) cart.splice(i, 1);
+    setCart(cart);
+  }
 }
-export function decAt(index){
-  const c = getCarrito();
-  if (!c[index]) return;
-  c[index].cantidad -= 1;
-  if (c[index].cantidad <= 0) c.splice(index,1);
-  setCarrito(c);
+
+export function removeFromCart(codigo) {
+  const cart = getCart();
+  const i = cart.findIndex(x => x.codigo === codigo);
+  if (i >= 0) {
+    cart.splice(i, 1);
+    setCart(cart);
+  }
 }
-export function delAt(index){
-  const c = getCarrito();
-  c.splice(index,1);
-  setCarrito(c);
+
+export function clearCart() {
+  setCart([]);
 }
+
+// Totales Ãºtiles
+export function getCartCount() {
+  return getCart().reduce((s, i) => s + (Number(i.cantidad) || 0), 0);
+}
+
+export function itemsCount() {
+  return getCartCount();
+}
+
+// Compatibilidad: agregar por cÃ³digo con dataset opcional
+// Busca el producto por 'codigo' en:
+// 1) el arreglo 'dataset' si se entrega
+// 2) el catÃ¡logo administrable (data/catalog)
+// 3) el dataset estÃ¡tico (data/products) si existe
+// addToCartByCode removido: use addToCart(item)\r\n

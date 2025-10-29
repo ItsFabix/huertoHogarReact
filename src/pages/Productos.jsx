@@ -1,93 +1,91 @@
-// src/pages/Productos.jsx
-import { useMemo, useState } from "react";
-import { PRODUCTS } from "../data/products";
-import { addToCartByCode } from "../utils/cart";
+import React, { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { list } from "../data/catalog";
+import { addToCart } from "../utils/cart";
 
-const LS_KEY_CART = "carrito";
-
-// ===== helpers mínimos (temporal, luego usaremos Context) =====
-function getCarrito(){
-  try {
-    const raw = localStorage.getItem(LS_KEY_CART);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch { return []; }
-}
-function setCarrito(arr){
-  localStorage.setItem(LS_KEY_CART, JSON.stringify(Array.isArray(arr) ? arr : []));
-}
-function addToCartByCode(codigo){
-  const p = PRODUCTS.find(x => x.codigo === codigo);
-  if(!p) return;
-  const cart = getCarrito();
-  const i = cart.findIndex(x => x.codigo === codigo);
-  if (i >= 0) cart[i].cantidad += 1;
-  else cart.push({ codigo: p.codigo, nombre: p.nombre, precio: p.precio, cantidad: 1 });
-  setCarrito(cart);
-  // mini feedback (podemos cambiar por toast luego)
-  alert(`Añadido: ${p.nombre}`);
-}
-
-export default function Productos(){
+export default function Productos() {
   const [categoria, setCategoria] = useState("");
-  const [q, setQ] = useState("");
+  const [query, setQuery] = useState("");
+  const [data, setData] = useState([]);
 
-  // categorías únicas desde PRODUCTS
-  const categorias = useMemo(()=>{
-    const set = new Set(PRODUCTS.map(p => p.categoria).filter(Boolean));
-    return ["", ...Array.from(set)];
+  useEffect(() => {
+    const sync = () => setData(list());
+    sync();
+    window.addEventListener("products:changed", sync);
+    return () => window.removeEventListener("products:changed", sync);
   }, []);
 
-  // aplica filtros (categoría + texto)
-  const lista = useMemo(()=>{
-    let data = [...PRODUCTS];
-    if (categoria) data = data.filter(p => p.categoria === categoria);
-    if (q.trim()) {
-      const k = q.toLowerCase();
-      data = data.filter(p => p.nombre.toLowerCase().includes(k));
+  const categorias = useMemo(() => {
+    const set = new Set();
+    (data || []).forEach((p) => p.categoria && set.add(p.categoria));
+    return ["", ...Array.from(set)];
+  }, [data]);
+
+  const filtrados = useMemo(() => {
+    let lista = Array.isArray(data) ? [...data] : [];
+    if (categoria) lista = lista.filter((p) => p.categoria === categoria);
+    if (query.trim()) {
+      const q = query.trim().toLowerCase();
+      lista = lista.filter(
+        (p) =>
+          p.nombre.toLowerCase().includes(q) ||
+          (p.descripcion || "").toLowerCase().includes(q) ||
+          (p.codigo || "").toLowerCase().includes(q)
+      );
     }
-    return data;
-  }, [categoria, q]);
+    return lista;
+  }, [categoria, query, data]);
 
   return (
     <main className="container">
       <h1>Nuestros productos</h1>
 
-      <div style={{ marginBottom: 12 }}>
-        <select id="fCategoria" value={categoria} onChange={e=>setCategoria(e.target.value)}>
-          {categorias.map((c,i)=>(
-            <option key={i} value={c}>
-              {c || "Todas las categorías"}
-            </option>
-          ))}
-        </select>
-        <input
-          id="fBuscar"
-          placeholder="Buscar..."
-          value={q}
-          onChange={e=>setQ(e.target.value)}
-          style={{ marginLeft: 8 }}
-        />
+      <div className="panel">
+        <div className="actions wrap">
+          <select value={categoria} onChange={(e) => setCategoria(e.target.value)}>
+            {categorias.map((c) => (
+              <option key={c} value={c}>
+                {c ? c : "Todas las categorías"}
+              </option>
+            ))}
+          </select>
+
+          <input
+            className="input-grow"
+            placeholder="Buscar..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
       </div>
 
-      <div id="lista-productos" className="grid">
-        {lista.map(p=>(
-          <article className="card" key={p.codigo}>
-            <img className="card-img" src={`/${p.imagen}`} alt={p.nombre}/>
+      <div className="grid">
+        {filtrados.map((p) => (
+          <article key={p.codigo} className="card">
+            <img
+              className="card-img"
+              src={p.imagen || "/img/productos/placeholder.jpg"}
+              alt={p.nombre}
+            />
             <h3>{p.nombre}</h3>
             <p className="precio">${Number(p.precio).toLocaleString("es-CL")}</p>
-            <p className="cat">{p.categoria}</p>
+            <p className="cat">{p.categoria || ""}</p>
+
             <div className="acciones">
-              <a className="btn" href={`/detalle-producto.html?id=${encodeURIComponent(p.codigo)}`}>
+              <Link className="btn" to={`/producto/${encodeURIComponent(p.codigo)}`}>
                 Ver detalle
-              </a>
-              <button className="btn" onClick={()=>addToCartByCode(p.codigo)}>Añadir</button>
+              </Link>
+              <button className="btn" onClick={() => addToCart(p)}>
+                Añadir
+              </button>
             </div>
           </article>
         ))}
       </div>
 
-      {!lista.length && <p>No hay productos para los filtros seleccionados.</p>}
+      {!filtrados.length && (
+        <p className="mt-12">No encontramos productos con ese filtro.</p>
+      )}
     </main>
   );
 }
