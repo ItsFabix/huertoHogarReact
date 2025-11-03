@@ -1,4 +1,3 @@
-// src/pages/Contacto.jsx
 import { useEffect, useState } from "react";
 import { EMAIL_ALLOWED, required, maxLen } from "../utils/validators";
 

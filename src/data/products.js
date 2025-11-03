@@ -1,4 +1,3 @@
-// src/data/products.js
 // Adaptador de compatibilidad: reexporta la API desde data/catalog
 
 import { list as _list } from "./catalog";

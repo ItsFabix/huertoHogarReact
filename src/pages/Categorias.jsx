@@ -1,82 +1,49 @@
-// src/pages/Categorias.jsx
-import { useEffect, useMemo, useState } from "react";
-import { list, listCategories } from "../data/catalog";
-import { addToCart } from "../utils/cart";
+import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { list } from "../data/catalog"; // usamos el catálogo para derivar categorías
 
 export default function Categorias() {
-  const [cat, setCat] = useState("");   // categoría activa
-  const [q, setQ] = useState("");       // búsqueda
-  const [data, setData] = useState([]);
+  const navigate = useNavigate();
 
-  // carga inicial + escuchar cambios en localStorage
-  useEffect(() => {
-    const load = () => setData(list());
-    load();
-    const onStorage = e => { if (e.key === "productosAdmin") load(); };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+  // Derivamos categorías únicas desde los productos
+  const categorias = useMemo(() => {
+    const nombres = Array.from(new Set(list().map(p => p.categoria))).sort();
+    // Elegimos una imagen representativa: el primer producto de cada categoría
+    const porNombre = {};
+    for (const cat of nombres) {
+      const prod = list().find(p => p.categoria === cat);
+      porNombre[cat] = {
+        nombre: cat,
+        img: prod?.imagen || "/img/logo.jpg"
+      };
+    }
+    return nombres.map(n => porNombre[n]);
   }, []);
 
-  const categorias = useMemo(() => listCategories(), [data]);
-
-  const filtrados = useMemo(() => {
-    let arr = [...data];
-    if (cat) arr = arr.filter(p => String(p.categoria).trim() === cat);
-    const qq = q.trim().toLowerCase();
-    if (qq) {
-      arr = arr.filter(p =>
-        (p.nombre || "").toLowerCase().includes(qq) ||
-        (p.categoria || "").toLowerCase().includes(qq) ||
-        String(p.codigo || "").toLowerCase().includes(qq)
-      );
-    }
-    return arr;
-  }, [data, cat, q]);
-
   return (
-    <main className="container main-content">
-      <h1>Categorías</h1>
+    <section>
+      <h1 className="title">Categorías</h1>
 
-      <section className="panel">
-        <div className="actions wrap">
-          <label style={{ minWidth: 220 }}>
-            <span style={{ display:"block", fontSize:12, color:"#666" }}>Categoría</span>
-            <select value={cat} onChange={e=>setCat(e.target.value)}>
-              <option value="">Todas</option>
-              {categorias.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </label>
-          <label className="input-grow">
-            <span style={{ display:"block", fontSize:12, color:"#666" }}>Buscar</span>
-            <input
-              placeholder="Nombre, código o categoría…"
-              value={q}
-              onChange={e=>setQ(e.target.value)}
-            />
-          </label>
-        </div>
-      </section>
-
-      {!data.length ? (
-        <p className="text-muted">Aún no hay productos cargados. Prueba recargar o crear productos en el panel de administración.</p>
-      ) : !filtrados.length ? (
-        <p className="text-muted">No hay productos que coincidan con el filtro.</p>
+      {categorias.length === 0 ? (
+        <p className="text-muted">Aún no hay categorías registradas.</p>
       ) : (
-        <section className="grid">
-          {filtrados.map(p => (
-            <article key={p.codigo} className="card">
-              <img className="card-img" src={p.imagen || "img/productos/placeholder.jpg"} alt={p.nombre} />
-              <h3>{p.nombre}</h3>
-              <p className="cat">{p.categoria || "—"}</p>
-              <p className="precio">${Number(p.precio).toLocaleString("es-CL")}</p>
-              <div className="acciones">
-                <a className="btn" href={`/producto/${encodeURIComponent(p.codigo)}`}>Ver</a>
-                <button className="btn" onClick={()=>addToCart(p)}>Añadir</button>
+        <div className="cat-grid">
+          {categorias.map(c => (
+            <article key={c.nombre} className="cat-card">
+              <img src={c.img} alt={c.nombre} className="cat-img" />
+              <div className="cat-body">
+                <h3>{c.nombre}</h3>
+                <button
+                  className="btn"
+                  onClick={() => navigate(`/productos?cat=${encodeURIComponent(c.nombre)}`)}
+                >
+                  Ver productos
+                </button>
               </div>
             </article>
           ))}
-        </section>
+        </div>
       )}
-    </main>
+    </section>
   );
 }

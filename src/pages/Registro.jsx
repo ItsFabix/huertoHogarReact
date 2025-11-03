@@ -1,92 +1,113 @@
-// src/pages/Registro.jsx
-import { useState, useEffect } from "react";
-import { EMAIL_ALLOWED, required, betweenLen, maxLen, validarRut } from "../utils/validators";
-import { addUser, findUserByEmail } from "../utils/auth";
+import { useState } from "react";
+
+const EMAIL_ALLOWED = /^[^@\s]+@(?:duoc\.cl|profesor\.duoc\.cl|gmail\.com)$/i;
+
+function normalizaRut(s) {
+  return (s || "").toString().replace(/[.\s-]/g, "").toUpperCase();
+}
+function dvRut(num) {
+  let M = 0, S = 1;
+  for (; num; num = Math.floor(num/10)) {
+    S = (S + (num % 10) * (9 - (M++ % 6))) % 11;
+  }
+  return S ? String(S - 1) : "K";
+}
+function validaRut(rut) {
+  const r = normalizaRut(rut);
+  const m = r.match(/^(\d{7,8})([0-9K])$/i);
+  if (!m) return false;
+  const cuerpo = m[1], dv = m[2].toUpperCase();
+  return dvRut(Number(cuerpo)) === dv;
+}
+
+function formatRut(rut){
+  const r = normalizaRut(rut);
+  const m = r.match(/^(\d{7,8})([0-9K])?$/i);
+  if (!m) return rut;
+  const cuerpo = m[1];
+  const dv = dvRut(Number(cuerpo));
+  const withDots = cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return `${withDots}-${dv}`;
+}
 
 export default function Registro() {
   const [form, setForm] = useState({
-    nombre: "", apellidos: "", correo: "", pass: "", pass2: "", rut: ""
+    nombre: "", apellidos: "", correo: "", rut: "", pass: "", pass2: ""
   });
   const [err, setErr] = useState({});
-  const [okMsg, setOkMsg] = useState("");
 
-  useEffect(() => { window.scrollTo(0, 0); }, []);
+  function set(k, v){ setForm(f => ({...f, [k]: v})); }
+  function error(k, msg){ setErr(e => ({...e, [k]: msg})); }
 
-  const onChange = e => {
-    const { name, value } = e.target;
-    setForm(f => ({ ...f, [name]: value }));
-  };
+  function onSubmit(e){
+    e.preventDefault(); setErr({});
+    let ok = true;
 
-  const validar = () => {
-    const e = {};
-    if (!required(form.nombre) || !maxLen(form.nombre, 50)) e.nombre = "Nombre requerido (máx 50).";
-    if (!required(form.apellidos) || !maxLen(form.apellidos, 100)) e.apellidos = "Apellidos requeridos (máx 100).";
-    if (!required(form.correo) || !EMAIL_ALLOWED.test(form.correo) || !maxLen(form.correo, 100)) e.correo = "Correo inválido (duoc.cl, profesor.duoc.cl, gmail.com).";
-    if (!required(form.pass) || !betweenLen(form.pass, 4, 10)) e.pass = "Contraseña de 4 a 10 caracteres.";
-    if (form.pass !== form.pass2) e.pass2 = "Las contraseñas no coinciden.";
-    if (form.rut && !validarRut(form.rut)) e.rut = "RUT inválido (formato ej. 12.345.678-5).";
-    if (findUserByEmail(form.correo)) e.correo = "Este correo ya está registrado.";
-    setErr(e);
-    return Object.keys(e).length === 0;
-  };
+    if (!form.nombre || form.nombre.length > 50) { error("nombre","Nombre requerido (máx 50)."); ok=false; }
+    if (!form.apellidos || form.apellidos.length > 100) { error("apellidos","Apellidos requeridos (máx 100)."); ok=false; }
+    if (!form.correo || !EMAIL_ALLOWED.test(form.correo) || form.correo.length > 100) { error("correo","Correo inválido (duoc.cl / profesor.duoc.cl / gmail.com)."); ok=false; }
 
-  const onSubmit = (e) => {
-    e.preventDefault();
-    setOkMsg("");
-    if (!validar()) return;
+    if (form.rut && !validaRut(form.rut)) { error("rut","RUT inválido (ej: 12.345.678-5 o 12345678-5)."); ok=false; }
 
-    addUser({
-      nombre: form.nombre.trim(),
-      apellidos: form.apellidos.trim(),
-      correo: form.correo.trim(),
-      pass: form.pass,
-      rut: form.rut.trim()
-    });
-    setOkMsg("Registro exitoso. Ahora puedes iniciar sesión.");
-    setForm({ nombre:"", apellidos:"", correo:"", pass:"", pass2:"", rut:"" });
-    setErr({});
-  };
+    if (!form.pass || form.pass.length < 4 || form.pass.length > 10) { error("pass","Contraseña 4 a 10 caracteres."); ok=false; }
+    if (form.pass !== form.pass2) { error("pass2","Las contraseñas no coinciden."); ok=false; }
+
+    if (!ok) return;
+    const USERS_KEY = "usuariosAuth";
+    const users = JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
+    if (users.some(u => u.correo.toLowerCase() === form.correo.toLowerCase())) {
+      error("correo","Este correo ya está registrado."); return;
+    }
+    users.push({ correo: form.correo.trim(), nombre: form.nombre.trim() });
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+
+    alert("Cuenta creada con éxito. Ahora puedes iniciar sesión.");
+    setForm({ nombre:"", apellidos:"", correo:"", rut:"", pass:"", pass2:"" });
+  }
 
   return (
-    <section className="container">
-      <h1>Registro</h1>
-      {okMsg && <div className="alert success">{okMsg}</div>}
-
-      <form className="panel form" onSubmit={onSubmit} noValidate>
-        <label>
-          Nombre
-          <input name="nombre" value={form.nombre} onChange={onChange} />
-          <small className="error">{err.nombre || ""}</small>
-        </label>
-        <label>
-          Apellidos
-          <input name="apellidos" value={form.apellidos} onChange={onChange} />
-          <small className="error">{err.apellidos || ""}</small>
-        </label>
-        <label>
-          Correo (duoc.cl / profesor.duoc.cl / gmail.com)
-          <input name="correo" type="email" value={form.correo} onChange={onChange} />
-          <small className="error">{err.correo || ""}</small>
-        </label>
-        <label>
-          RUT (opcional)
-          <input name="rut" placeholder="12.345.678-5" value={form.rut} onChange={onChange} />
-          <small className="error">{err.rut || ""}</small>
-        </label>
-        <div className="grid2">
-          <label>
-            Contraseña
-            <input name="pass" type="password" value={form.pass} onChange={onChange} />
-            <small className="error">{err.pass || ""}</small>
-          </label>
-          <label>
-            Repetir contraseña
-            <input name="pass2" type="password" value={form.pass2} onChange={onChange} />
-            <small className="error">{err.pass2 || ""}</small>
-          </label>
+    <section>
+      <h1 className="title">Registro</h1>
+      <form className="panel" onSubmit={onSubmit}>
+        <div className="field">
+          <label>Nombre</label>
+          <input className="input" value={form.nombre} onChange={e=>set("nombre", e.target.value)}/>
+          {err.nombre && <small className="error">{err.nombre}</small>}
         </div>
-        <div className="actions">
-          <button className="btn" type="submit">Crear cuenta</button>
+        <div className="field">
+          <label>Apellidos</label>
+          <input className="input" value={form.apellidos} onChange={e=>set("apellidos", e.target.value)}/>
+          {err.apellidos && <small className="error">{err.apellidos}</small>}
+        </div>
+        <div className="field">
+          <label>Correo (duoc.cl / profesor.duoc.cl / gmail.com)</label>
+          <input className="input" value={form.correo} onChange={e=>set("correo", e.target.value)}/>
+          {err.correo && <small className="error">{err.correo}</small>}
+        </div>
+        <div className="field">
+          <label>RUT (opcional)</label>
+          <input
+            className="input"
+            placeholder="12.345.678-5"
+            value={form.rut}
+            onChange={e=>set("rut", e.target.value)}
+            onBlur={e=> set("rut", formatRut(e.target.value))}
+          />
+          {err.rut && <small className="error">{err.rut}</small>}
+        </div>
+        <div className="field">
+          <label>Contraseña</label>
+          <input type="password" className="input" value={form.pass} onChange={e=>set("pass", e.target.value)}/>
+          {err.pass && <small className="error">{err.pass}</small>}
+        </div>
+        <div className="field">
+          <label>Repetir contraseña</label>
+          <input type="password" className="input" value={form.pass2} onChange={e=>set("pass2", e.target.value)}/>
+          {err.pass2 && <small className="error">{err.pass2}</small>}
+        </div>
+
+        <div className="actions" style={{marginTop:10}}>
+          <button className="btn">Crear cuenta</button>
         </div>
       </form>
     </section>

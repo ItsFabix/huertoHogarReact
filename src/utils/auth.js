@@ -1,4 +1,3 @@
-// src/utils/auth.js
 
 const AUTH_KEY = "usuariosAuth";   // [{correo, pass, nombre, apellidos, rut?}]
 const SESSION_KEY = "currentUser"; // {correo, nombre}

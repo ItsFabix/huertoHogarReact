@@ -1,4 +1,3 @@
-// src/pages/Checkout.jsx
 import { useEffect, useMemo, useState } from "react";
 import { getCart, setCart } from "../utils/cart";
 import { useNavigate } from "react-router-dom";
@@ -11,9 +10,8 @@ export default function Checkout(){
   const total = useMemo(()=> items.reduce((s,i)=> s + i.precio*i.cantidad, 0), [items]);
 
   const pagar = (ok=true) => {
-    // simulación de pago
     if (ok) {
-      setCart([]); // vacía carrito
+      setCart([]); // vac�a carrito
       nav("/compra-exitosa");
     } else {
       nav("/compra-fallida");

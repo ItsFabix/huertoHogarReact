@@ -1,56 +1,46 @@
-﻿import React, { useEffect, useState } from "react";
-import { Link, NavLink } from "react-router-dom";
+﻿import { NavLink, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { getCartCount } from "../utils/cart";
 
-function Header() {
-  const [count, setCount] = useState(0);
-  const refreshCount = () => setCount(getCartCount());
+export default function Header() {
+  const [count, setCount] = useState(getCartCount());
 
   useEffect(() => {
-    refreshCount();
-
-    const onStorage = (e) => { if (e.key === "carrito") refreshCount(); };
-    const onCartChange = () => refreshCount();
-
-    window.addEventListener("storage", onStorage);
-    window.addEventListener("cart:change", onCartChange);
-
+    const onChange = () => setCount(getCartCount());
+    window.addEventListener("cart:change", onChange);
+    window.addEventListener("storage", onChange);
     return () => {
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener("cart:change", onCartChange);
+      window.removeEventListener("cart:change", onChange);
+      window.removeEventListener("storage", onChange);
     };
   }, []);
 
   return (
     <header className="topbar">
       <nav className="nav container">
-        {/* Logo */}
         <Link to="/" className="logo" title="HuertoHogar">
-          <img src="/img/logo.jpg" alt="HuertoHogar" />
+          <img src="/img/logo.jpg" alt="HuertoHogar" style={{ height: 56 }} />
         </Link>
 
-        {/* Menú principal */}
         <ul className="menu">
           <li><NavLink to="/" end>Inicio</NavLink></li>
           <li><NavLink to="/productos">Productos</NavLink></li>
           <li><NavLink to="/ofertas">Ofertas</NavLink></li>
-          <li><NavLink to="/categoria">Categorías</NavLink></li>
+          <li><NavLink to="/categorias">Categorias</NavLink></li>
           <li><NavLink to="/blog">Blog</NavLink></li>
           <li><NavLink to="/nosotros">Nosotros</NavLink></li>
           <li><NavLink to="/contacto">Contacto</NavLink></li>
         </ul>
 
-        {/* Acciones a la derecha */}
         <div className="nav-actions">
-          <Link to="/carrito" className="cart-link" title="Carrito">
-            🛒 <span id="cart-count" className="badge">{count}</span>
+          <Link to="/carrito" className="cart-link">
+            🛒 <span className="badge">{count}</span>
           </Link>
-          <div className="user-menu" title="Cuenta">
-            👤
+          <div className="user-menu">👤
             <div className="user-dropdown">
-              <Link to="/login">Iniciar sesión</Link>
+              <Link to="/login">Iniciar sesion</Link>
               <Link to="/registro">Registrarse</Link>
-              <a href="/ordenes">Mis órdenes</a>
+              <Link to="/ordenes">Mis Ordenes</Link>
               <Link to="/admin">Admin</Link>
             </div>
           </div>
@@ -59,5 +49,3 @@ function Header() {
     </header>
   );
 }
-
-export default Header;

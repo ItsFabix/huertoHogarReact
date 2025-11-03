@@ -1,23 +1,22 @@
-﻿// src/pages/BlogDetalle.jsx
 import { useParams, Link } from "react-router-dom";
 import { useMemo } from "react";
 
-// Importante: guarda las imÃ¡genes en public/img/...
-// y refiÃ©relas como "/img/archivo.png"
+// Importante: guarda las imágenes en public/img/...
+// y refiérelas como "/img/archivo.png"
 const POSTS = [
   {
     id: 1,
     titulo: "Tip rapido: manzanas listas",
     imagen: "/img/blog1.png",
     html: `
-      <p>Cuando el color esta¡ uniforme y el aroma es fresco, tu <b>Fuji</b> esta lista para comer. La firmeza debe ser alta, sin zonas blandas.</p>
-      <p>Para conservarlas, guardalas en el refrigerador dentro del cajon de frutas: asi­ prolongas su crocancia.</p>
-      <p>En tienda mostramos el precio por unidad y el codigo del producto tal como lo veras en la ficha; asi­ puedes identificarla facil en la web.</p>
+      <p>Cuando el color esta� uniforme y el aroma es fresco, tu <b>Fuji</b> esta lista para comer. La firmeza debe ser alta, sin zonas blandas.</p>
+      <p>Para conservarlas, guardalas en el refrigerador dentro del cajon de frutas: asi� prolongas su crocancia.</p>
+      <p>En tienda mostramos el precio por unidad y el codigo del producto tal como lo veras en la ficha; asi� puedes identificarla facil en la web.</p>
     `
   },
   {
     id: 2,
-    titulo: "Lacteos: cadena de fri­o en tienda",
+    titulo: "Lacteos: cadena de fri�o en tienda",
     imagen: "/img/blog2.png",
     html: `
       <p>Mantenemos los lacteos en refrigeracion continua desde la recepcion hasta la entrega.</p>
@@ -30,7 +29,7 @@ const POSTS = [
 export default function BlogDetalle() {
   const { id } = useParams();
 
-  // Asegura que id sea nÃºmero y busca el post
+  // Asegura que id sea número y busca el post
   const post = useMemo(() => {
     const num = Number(id);
     return POSTS.find(p => p.id === num) || null;
@@ -39,7 +38,7 @@ export default function BlogDetalle() {
   if (!post) {
     return (
       <section className="panel">
-        <h1>Arti­culo no encontrado</h1>
+        <h1>Arti�culo no encontrado</h1>
         <p>No existe contenido para el id: <code>{id}</code>.</p>
         <Link className="btn" to="/blog">Volver al Blog</Link>
       </section>

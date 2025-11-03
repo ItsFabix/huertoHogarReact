@@ -1,55 +1,110 @@
-// ============================
-// src/data/orders.js
-// ============================
-// Gestión de órdenes de compra en LocalStorage
+// Persistencia simple en localStorage para Órdenes (compras) + folio de boleta
 
-const LS_KEY_ORDERS = "ORDERS";
+const KEY = "hh_orders_v1";
+const FOLIO_KEY = "hh_orders_folio_v1";
 
-/** Lee todas las órdenes guardadas */
+// ====== almacenamiento base ======
+function read() {
+  try { return JSON.parse(localStorage.getItem(KEY)) || []; }
+  catch { return []; }
+}
+function write(arr) {
+  localStorage.setItem(KEY, JSON.stringify(Array.isArray(arr) ? arr : []));
+}
+
+// ====== folio consecutivo ======
+function readFolio() {
+  const n = Number(localStorage.getItem(FOLIO_KEY));
+  return Number.isFinite(n) && n > 0 ? n : 10000; // parte en 10000
+}
+function nextFolio() {
+  const now = readFolio() + 1;
+  localStorage.setItem(FOLIO_KEY, String(now));
+  return now;
+}
+
+// ====== API pública ======
 export function listOrders() {
-  try {
-    const raw = localStorage.getItem(LS_KEY_ORDERS);
-    const arr = raw ? JSON.parse(raw) : [];
-    return Array.isArray(arr) ? arr : [];
-  } catch {
-    return [];
+  return read().sort((a,b) => b.date - a.date);
+}
+
+export function getOrder(idOrFolio) {
+  const all = read();
+  return all.find(o =>
+    String(o.id) === String(idOrFolio) || String(o.folio) === String(idOrFolio)
+  ) || null;
+}
+
+export function addOrder(orderLike) {
+  const orders = read();
+  const id = Date.now();
+  const folio = nextFolio();
+  const order = { id, folio, status: "pagada", ...orderLike };
+  orders.push(order);
+  write(orders);
+  window.dispatchEvent(new Event("orders:change"));
+  return order;
+}
+
+export function cancelOrder(idOrFolio) {
+  const orders = read();
+  const idx = orders.findIndex(o =>
+    String(o.id) === String(idOrFolio) || String(o.folio) === String(idOrFolio)
+  );
+  if (idx >= 0) {
+    orders[idx].status = "cancelada";
+    write(orders);
+    window.dispatchEvent(new Event("orders:change"));
+    return true;
   }
+  return false;
 }
 
-/** Guarda todas las órdenes */
-export function saveOrders(arr) {
-  localStorage.setItem(LS_KEY_ORDERS, JSON.stringify(Array.isArray(arr) ? arr : []));
+// ===== métricas derivadas =====
+export function ordersCount() {
+  return listOrders().length;
+}
+export function revenue() {
+  return listOrders()
+    .filter(o => o.status !== "cancelada")
+    .reduce((s, o) => s + Number(o.total || 0), 0);
 }
 
-/** Genera ID incremental simple */
-function nextId() {
-  const list = listOrders();
-  const last = list.length ? Math.max(...list.map(o => Number(o.id) || 0)) : 0;
-  return String(last + 1);
-}
+// ===== helper para construir orden desde carrito =====
+export function buildOrderFromCart(cart, buyer) {
+  const items = (Array.isArray(cart) ? cart : []).map(p => ({
+    codigo: p.codigo,
+    nombre: p.nombre,
+    precio: Number(p.precio) || 0,
+    cantidad: Number(p.cantidad) || 1
+  }));
+  const subtotal = items.reduce((s,i)=> s + i.precio * i.cantidad, 0);
+  const iva = Math.round(subtotal * 0.19);
+  const total = subtotal + iva;
 
-/** Agrega nueva orden */
-export function addOrder({ cliente, items, total }) {
-  const orden = {
-    id: nextId(),
-    fecha: new Date().toISOString(),
-    cliente,
-    items,
-    total
+  // buyer = { rut, nombre, email, telefono, direccion:{calle,numero,comuna,region}, pago:{metodo}, notas }
+  return {
+    date: Date.now(),
+    items, subtotal, iva, total,
+    buyer: {
+      rut: buyer?.rut || "",
+      nombre: buyer?.nombre || "",
+      email: buyer?.email || "",
+      telefono: buyer?.telefono || "",
+      direccion: {
+        calle: buyer?.direccion?.calle || "",
+        numero: buyer?.direccion?.numero || "",
+        comuna: buyer?.direccion?.comuna || "",
+        region: buyer?.direccion?.region || ""
+      },
+      pago: { metodo: buyer?.pago?.metodo || "Débito/Crédito" },
+      notas: buyer?.notas || ""
+    },
+    status: "pagada"
   };
-  const list = listOrders();
-  list.push(orden);
-  saveOrders(list);
-  return orden;
 }
 
-/** Obtiene una orden específica por ID */
-export function getOrder(id) {
-  return listOrders().find(o => o.id === String(id)) || null;
-}
-
-/** Cancela (elimina) una orden por ID */
-export function cancelOrder(id) {
-  const list = listOrders().filter(o => o.id !== String(id));
-  saveOrders(list);
-}
+export default {
+  listOrders, getOrder, addOrder, cancelOrder,
+  ordersCount, revenue, buildOrderFromCart
+};

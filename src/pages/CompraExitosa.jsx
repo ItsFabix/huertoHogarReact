@@ -1,4 +1,3 @@
-// src/pages/CompraExitosa.jsx
 import { Link } from "react-router-dom";
 export default function CompraExitosa(){
   return (

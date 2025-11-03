@@ -1,4 +1,3 @@
-// src/components/AdminForm.jsx
 import { useEffect, useState } from "react";
 
 export default function AdminForm({ producto, onSave, onClose }) {

@@ -1,4 +1,3 @@
-// src/data/catalog.js
 // Catálogo administrable guardado en LocalStorage.
 // Provee CRUD y hace seed automático la 1ª vez.
 

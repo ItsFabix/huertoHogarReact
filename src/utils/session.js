@@ -1,4 +1,3 @@
-// src/utils/session.js
 // Utilidades simples para manejar sesión en LocalStorage
 
 const SESSION_KEY = "currentUser";

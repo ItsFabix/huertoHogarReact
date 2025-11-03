@@ -1,41 +1,48 @@
-// src/pages/Orders.jsx
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { listOrders } from "../data/orders";
+import { Link } from "react-router-dom";
 
 export default function Orders() {
-  const ordenes = listOrders();
+  const [orders, setOrders] = useState(listOrders());
+
+  useEffect(()=>{
+    const refresh = ()=> setOrders(listOrders());
+    window.addEventListener("orders:change", refresh);
+    window.addEventListener("storage", refresh);
+    return ()=> {
+      window.removeEventListener("orders:change", refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
 
   return (
-    <main className="container main-content">
-      <h1>Mis órdenes</h1>
-
-      {!ordenes.length ? (
-        <>
-          <p>No tienes órdenes registradas todavía.</p>
-          <Link className="btn" to="/productos">Ir a comprar</Link>
-        </>
-      ) : (
-        <section className="panel" style={{ marginTop: 12 }}>
-          <div className="table">
-            <div className="thead" style={{display:"grid",gridTemplateColumns:"80px 1fr 200px 160px",gap:8}}>
-              <div>ID</div><div>Cliente</div><div>Fecha</div><div>Total</div>
-            </div>
-            {ordenes.map(o => (
-              <Link
-                key={o.id}
-                className="trow"
-                to={`/orden/${o.id}`}
-                style={{display:"grid",gridTemplateColumns:"80px 1fr 200px 160px",gap:8, textDecoration:"none", color:"inherit"}}
-              >
-                <div>#{o.id}</div>
-                <div>{o.cliente?.nombre || "Invitado"} <span className="text-muted">({o.cliente?.correo || "—"})</span></div>
-                <div>{new Date(o.fecha).toLocaleString("es-CL")}</div>
-                <div>${Number(o.total||0).toLocaleString("es-CL")}</div>
-              </Link>
-            ))}
-          </div>
-        </section>
+    <section>
+      <h1>Órdenes</h1>
+      {!orders.length && <p>No hay órdenes todavía.</p>}
+      {orders.length > 0 && (
+        <div className="panel">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Folio</th><th>Fecha</th><th>Cliente</th><th>Items</th><th>Total</th><th>Estado</th><th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map(o=>(
+                <tr key={o.id}>
+                  <td>{o.folio}</td>
+                  <td>{new Date(o.date).toLocaleString()}</td>
+                  <td>{o.buyer?.nombre || o.buyer?.email}</td>
+                  <td>{o.items?.length || 0}</td>
+                  <td>${Number(o.total).toLocaleString("es-CL")}</td>
+                  <td>{o.status}</td>
+                  <td><Link className="btn-outline" to={`/orden/${o.id}`}>Ver</Link></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
-    </main>
+    </section>
   );
 }

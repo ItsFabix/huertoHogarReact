@@ -1,4 +1,3 @@
-// src/pages/Login.jsx
 import { useEffect, useState } from "react";
 import { EMAIL_ALLOWED, required, betweenLen } from "../utils/validators";
 import { findUserByEmail, setSession } from "../utils/auth";

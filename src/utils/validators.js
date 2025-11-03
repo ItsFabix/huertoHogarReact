@@ -1,4 +1,3 @@
-// src/utils/validators.js
 
 // dominios permitidos: duoc.cl, profesor.duoc.cl, gmail.com
 export const EMAIL_ALLOWED = /^[^@\s]+@(?:duoc\.cl|profesor\.duoc\.cl|gmail\.com)$/i;
